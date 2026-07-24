@@ -1,0 +1,16 @@
+[module]
+name = "local-devices"
+version = "0.1.0"
+language = "native"
+entry = "local_devices"
+abi = "native"
+description = "List devices connected to THIS machine (USB; Windows registry history / Linux /sys)."
+authors = ["Limen"]
+repo = "CRC-BARRACUDA/limen-local-devices"
+
+[provides]
+capabilities = ["devices.local"]
+
+# Reads the kernel journal (spawns `journalctl`) for device history on Linux.
+[permissions]
+subprocess = true
