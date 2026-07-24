@@ -1,10 +1,10 @@
 [module]
 name = "local-devices"
-version = "0.1.0"
+version = "0.2.0"
 language = "native"
 entry = "local_devices"
 abi = "native"
-description = "List devices connected to THIS machine (USB; Windows registry history / Linux /sys)."
+description = "List devices on THIS machine across buses: USB, PCI, monitors (EDID), disks, network, Bluetooth."
 authors = ["Limen"]
 repo = "CRC-BARRACUDA/limen-local-devices"
 

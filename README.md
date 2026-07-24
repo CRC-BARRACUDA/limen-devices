@@ -1,32 +1,39 @@
 # local-devices
 
 A native [Limen](https://github.com/CRC-BARRACUDA/Limen) module that lists the
-devices connected to **this** machine — with USB history where the OS keeps it.
+devices on **this** machine across several buses — with USB history where the OS
+keeps it.
 
 Provides the capability **`devices.local`**.
 
 ## What it does
 
-- Enumerates USB devices and classifies each by **type** — flash drive, keyboard,
-  mouse, camera, audio, smartcard, hub, etc. (derived from the USB interface
-  class/protocol).
-- Splits them into **Connected** (attached now) and **Disconnected** (seen before
-  but not currently attached).
-- A searchable, refreshable table UI drawn by the module itself.
+Enumerates devices in six **categories** and presents them in one searchable,
+refreshable table (split into **Connected** now vs **Disconnected**/previously
+seen):
+
+| Category | What |
+|---|---|
+| `usb` | USB devices, classified by type (flash, keyboard, mouse, camera, audio, smartcard, hub, …) |
+| `pci` | PCI/PCIe functions (GPU, network, storage/serial-bus controllers, …) |
+| `monitor` | Attached displays — manufacturer, model, serial from **EDID** |
+| `disk` | Non-USB drives (NVMe/SATA), with model + serial |
+| `net` | Network interfaces (ethernet / wifi / virtual), MAC, link state |
+| `bluetooth` | Bluetooth adapters |
 
 Per-OS implementation (`cfg`-selected at compile time):
 
-| OS | Source | History? |
-|---|---|---|
-| **Windows** | Registry `…\Enum\USB` + `USBSTOR` | Yes — *every* device ever connected (the classic "USB history") |
-| **Linux** | `/sys/bus/usb/devices/` + the kernel journal (`journalctl -k`) | Currently attached, plus what the journal remembers |
+| OS | Source |
+|---|---|
+| **Linux** | `/sys` — `bus/usb`, `bus/pci`, `class/drm` (EDID), `block`, `class/net`, `class/bluetooth` — plus `journalctl -k` for USB history |
+| **Windows** | Registry `…\Enum\{USB, USBSTOR, PCI, DISPLAY, SCSI, IDE, BTHENUM}` (devices ever connected) |
 
 ## Methods
 
 | Method | Returns |
 |---|---|
-| `list` | JSON array of devices (`vendor`, `product`, `vid`/`pid`, `serial`, `type`, `connected`) |
-| `ui`   | A Limen view spec — the Connected/Disconnected tables with search + Refresh |
+| `list` | JSON: `{os, total, connected, was_connected, devices[]}` — each device has `category`, `type`, `id`, `vendor`, `product`, `serial`, `connected` |
+| `ui`   | A Limen view spec — Connected/Disconnected tables with search + Refresh |
 
 ## Permissions
 
