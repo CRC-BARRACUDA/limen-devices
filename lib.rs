@@ -12,6 +12,7 @@
 //!
 //! Built as a native (`cdylib`) module using `limen-sdk-rust`.
 
+use limen_sdk_rust::ui::{button, label, separator, table, text, window};
 use limen_sdk_rust::{export_module, json, rpc, Handler, Host, RpcError, Value};
 
 #[derive(Default)]
@@ -26,11 +27,11 @@ impl Handler for LocalDevices {
         &mut self,
         _capability: &str,
         method: &str,
-        _params: Value,
+        params: Value,
         _host: &Host,
     ) -> Result<Value, RpcError> {
         match method {
-            "ui" => Ok(ui_spec()),
+            "ui" => Ok(ui_spec(&params)),
             "list" => Ok(list_devices()),
             other => Err(RpcError::new(
                 rpc::METHOD_NOT_FOUND,
@@ -40,17 +41,80 @@ impl Handler for LocalDevices {
     }
 }
 
-/// The module's self-drawn UI (rendered by the GUI core).
-fn ui_spec() -> Value {
-    json!({
-        "title": "Local Devices",
-        "widgets": [
-            { "kind": "label", "style": "weak",
-              "text": "USB devices connected to this machine (Windows: full history; Linux: currently attached)." },
-            { "kind": "button", "text": "List devices", "style": "primary",
-              "action": { "capability": "devices.local", "method": "list" } }
-        ]
-    })
+/// The module's self-drawn UI: a search box + Refresh, then two sections
+/// (Connected / Disconnected). `params.query` filters the list; Refresh re-runs.
+fn ui_spec(params: &Value) -> Value {
+    let query = params
+        .get("query")
+        .and_then(Value::as_str)
+        .unwrap_or("")
+        .to_lowercase();
+
+    let data = list_devices();
+    let empty = Vec::new();
+    let devices = data.get("devices").and_then(Value::as_array).unwrap_or(&empty);
+
+    let cell = |d: &Value, key: &str| -> String {
+        d.get(key).and_then(Value::as_str).unwrap_or("").to_string()
+    };
+    let dtype = |d: &Value| d.get("type").and_then(Value::as_str).unwrap_or("—").to_string();
+    // Case-insensitive substring match across all fields.
+    let matches = |d: &Value| -> bool {
+        if query.is_empty() {
+            return true;
+        }
+        let hay = format!(
+            "{} {}:{} {} {} {}",
+            dtype(d),
+            cell(d, "vendor_id"),
+            cell(d, "product_id"),
+            cell(d, "manufacturer"),
+            cell(d, "product"),
+            cell(d, "serial"),
+        )
+        .to_lowercase();
+        hay.contains(&query)
+    };
+    let rows_for = |connected: bool| -> Vec<Vec<String>> {
+        devices
+            .iter()
+            .filter(|d| d.get("connected").and_then(Value::as_bool).unwrap_or(false) == connected)
+            .filter(|d| matches(d))
+            .map(|d| {
+                vec![
+                    dtype(d),
+                    format!("{}:{}", cell(d, "vendor_id"), cell(d, "product_id")),
+                    cell(d, "manufacturer"),
+                    cell(d, "product"),
+                    cell(d, "serial"),
+                ]
+            })
+            .collect()
+    };
+
+    let cols: Vec<String> = ["Type", "VID:PID", "Manufacturer", "Product", "Serial"]
+        .iter()
+        .map(|s| s.to_string())
+        .collect();
+    let connected = rows_for(true);
+    let disconnected = rows_for(false);
+
+    window(
+        "Local Devices",
+        vec![
+            text("query")
+                .label("Search")
+                .placeholder("type, vendor, product, serial…")
+                .default(query.clone()),
+            button("Refresh", "devices.local", "ui").primary(),
+            separator(),
+            label(format!("Connected ({})", connected.len())).strong(),
+            table(cols.clone(), connected),
+            separator(),
+            label(format!("Disconnected — previously connected ({})", disconnected.len())).strong(),
+            table(cols, disconnected),
+        ],
+    )
 }
 
 // --------------------------------------------------------------------------- //
@@ -65,7 +129,70 @@ struct Dev {
     product: Option<String>,
     manufacturer: Option<String>,
     serial: Option<String>,
+    /// Device type inferred from USB class (flash / keyboard / mouse / …).
+    /// `None` for history-only devices whose interfaces we can't inspect.
+    dtype: Option<String>,
     connected: bool,
+}
+
+/// A coarse device type from a USB `(interface_class, protocol)` pair.
+#[cfg(target_os = "linux")]
+fn type_for_class(class: u32, protocol: u32) -> Option<&'static str> {
+    Some(match class {
+        0x08 => "flash",                 // mass storage
+        0x03 => match protocol {         // HID
+            1 => "keyboard",
+            2 => "mouse",
+            _ => "hid",
+        },
+        0x0e | 0x06 => "camera",         // video / still image
+        0x01 => "audio",
+        0x07 => "printer",
+        0x02 | 0x0a => "serial",         // communications / CDC-data
+        0x0b => "smartcard",             // e.g. security keys
+        0x09 => "hub",
+        0xe0 => "wireless",
+        _ => return None,
+    })
+}
+
+/// Classify a device by looking at its interfaces in sysfs.
+#[cfg(target_os = "linux")]
+fn classify(dir: &std::path::Path) -> Option<String> {
+    // A hub declares itself at the device level.
+    if read_hex(&dir.join("bDeviceClass")) == Some(0x09) {
+        return Some("hub".into());
+    }
+    // Otherwise the type lives on the interfaces (dirs like "1-1:1.0").
+    let mut hub = false;
+    if let Ok(entries) = std::fs::read_dir(dir) {
+        for entry in entries.flatten() {
+            let name = entry.file_name();
+            if !name.to_string_lossy().contains(':') {
+                continue;
+            }
+            let iface = entry.path();
+            let Some(class) = read_hex(&iface.join("bInterfaceClass")) else {
+                continue;
+            };
+            let proto = read_hex(&iface.join("bInterfaceProtocol")).unwrap_or(0);
+            match type_for_class(class, proto) {
+                Some("hub") => hub = true,
+                Some(t) => return Some(t.into()), // first specific type wins
+                None => {}
+            }
+        }
+    }
+    if hub {
+        Some("hub".into())
+    } else {
+        Some("other".into())
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn read_hex(path: &std::path::Path) -> Option<u32> {
+    read_trim(path).and_then(|s| u32::from_str_radix(s.trim_start_matches("0x"), 16).ok())
 }
 
 #[cfg(target_os = "linux")]
@@ -96,6 +223,7 @@ fn list_devices() -> Value {
             let key = dev_key(&vendor_id, &product_id, &serial);
             let product = read_trim(&dir.join("product"));
             let manufacturer = read_trim(&dir.join("manufacturer"));
+            let dtype = classify(&dir);
             let d = devices.entry(key).or_insert_with(|| Dev {
                 vendor_id,
                 product_id,
@@ -109,6 +237,9 @@ fn list_devices() -> Value {
             if d.manufacturer.is_none() {
                 d.manufacturer = manufacturer;
             }
+            if d.dtype.is_none() {
+                d.dtype = dtype;
+            }
         }
     }
 
@@ -119,6 +250,7 @@ fn list_devices() -> Value {
             json!({
                 "vendor_id": d.vendor_id,
                 "product_id": d.product_id,
+                "type": d.dtype,
                 "product": d.product,
                 "manufacturer": d.manufacturer,
                 "serial": d.serial,
@@ -242,6 +374,7 @@ fn list_devices() -> Value {
                         .unwrap_or_default();
                     devices.push(json!({
                         "kind": "usb-storage",
+                        "type": "flash",
                         "class": class,
                         "instance": instance,
                         "friendly_name": friendly,
@@ -264,6 +397,7 @@ fn list_devices() -> Value {
                         .unwrap_or_default();
                     devices.push(json!({
                         "kind": "usb",
+                        "type": Value::Null,
                         "id": vidpid,
                         "instance": instance,
                         "friendly_name": friendly,
