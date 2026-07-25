@@ -2,15 +2,15 @@
 [workspace]
 
 [package]
-name = "local-devices"
+name = "devices"
 version = "0.2.0"
 edition = "2021"
 license = "GPL-3.0-or-later"
 description = "Lists devices on THIS machine: USB, PCI, monitors, disks, network, Bluetooth."
-repository = "https://github.com/CRC-BARRACUDA/limen-local-devices"
+repository = "https://github.com/CRC-BARRACUDA/limen-devices"
 
 [lib]
-name = "local_devices"
+name = "devices"
 path = "lib.rs"
 crate-type = ["cdylib"]
 

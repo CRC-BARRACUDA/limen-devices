@@ -1,12 +1,12 @@
 [module]
-name = "local-devices"
+name = "devices"
 version = "0.2.0"
 language = "native"
-entry = "local_devices"
+entry = "devices"
 abi = "native"
 description = "List devices on THIS machine across buses: USB, PCI, monitors (EDID), disks, network, Bluetooth."
 authors = ["Limen"]
-repo = "CRC-BARRACUDA/limen-local-devices"
+repo = "CRC-BARRACUDA/limen-devices"
 
 [provides]
 capabilities = ["devices.local"]

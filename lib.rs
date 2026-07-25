@@ -1,4 +1,4 @@
-//! `local-devices` — a native Limen module that lists devices on **this**
+//! `devices` — a native Limen module that lists devices on **this**
 //! machine across several buses.
 //!
 //! Provides `devices.local` with one method, `list`. Categories: **usb**, **pci**,
@@ -34,9 +34,9 @@ fn list_devices() -> Value {
 }
 
 #[derive(Default)]
-struct LocalDevices;
+struct Devices;
 
-impl Handler for LocalDevices {
+impl Handler for Devices {
     fn capabilities(&self) -> Vec<String> {
         vec!["devices.local".into()]
     }
@@ -53,7 +53,7 @@ impl Handler for LocalDevices {
             "list" => Ok(list_devices()),
             other => Err(RpcError::new(
                 rpc::METHOD_NOT_FOUND,
-                format!("local-devices has no method {other}"),
+                format!("devices has no method {other}"),
             )),
         }
     }
@@ -157,7 +157,7 @@ fn ui_spec(params: &Value) -> Value {
     )
 }
 
-export_module!(LocalDevices);
+export_module!(Devices);
 
 #[cfg(test)]
 mod tests {
