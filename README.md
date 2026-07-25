@@ -32,8 +32,9 @@ Per-OS implementation (`cfg`-selected at compile time):
 
 | Method | Returns |
 |---|---|
-| `list` | JSON: `{os, total, connected, was_connected, devices[]}` — each device has `category`, `type`, `id`, `vendor`, `product`, `serial`, `connected` |
-| `ui`   | A Limen view spec — Connected/Disconnected tables with search + Refresh |
+| `list` | JSON: `{os, total, connected, was_connected, devices[]}` — each device has `category`, `type`, `id`, `vendor`, `product`, `serial`, `connected`. Always scans |
+| `ui`   | The landing view — a **Scan** button. Nothing is enumerated until pressed |
+| `scan` | Runs the scan and returns the results view (Connected/Disconnected tables + search + Refresh) |
 
 ## Permissions
 

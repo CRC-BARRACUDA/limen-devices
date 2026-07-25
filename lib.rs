@@ -1,7 +1,9 @@
 //! `devices` — a native Limen module that lists devices on **this**
 //! machine across several buses.
 //!
-//! Provides `devices.local` with one method, `list`. Categories: **usb**, **pci**,
+//! Provides `devices.local`. Methods: `list` (raw data), plus `ui`/`scan` for
+//! the built-in view — the UI does **not** scan on open; it enumerates only when
+//! the user presses **Scan**. Categories: **usb**, **pci**,
 //! **monitor** (EDID), **disk** (non-USB), **net**, **bluetooth**. Enumeration is
 //! per-OS; the platform code lives in [`linux`] / [`windows`], and every device is
 //! emitted in one shared schema (see [`device`]):
@@ -49,7 +51,10 @@ impl Handler for Devices {
         _host: &Host,
     ) -> Result<Value, RpcError> {
         match method {
-            "ui" => Ok(ui_spec(&params)),
+            // Initial view: a Scan button only — enumeration runs on demand.
+            "ui" => Ok(idle_view()),
+            // Scan now and render the results (also what Refresh calls).
+            "scan" => Ok(ui_spec(&params)),
             "list" => Ok(list_devices()),
             other => Err(RpcError::new(
                 rpc::METHOD_NOT_FOUND,
@@ -80,8 +85,20 @@ pub(crate) fn device(
     })
 }
 
-/// The module's self-drawn UI: a search box + Refresh, then two sections
-/// (Connected / Disconnected). `params.query` filters the list; Refresh re-runs.
+/// The landing view: nothing is scanned until the user asks. Just a hint and a
+/// Scan button that invokes `scan`.
+fn idle_view() -> Value {
+    window(
+        "Local Devices",
+        vec![
+            label("Scan this machine for connected and previously-seen devices.").weak(),
+            button("Scan", "devices.local", "scan").primary(),
+        ],
+    )
+}
+
+/// The results view: a search box + Refresh, then two sections (Connected /
+/// Disconnected). Runs the scan. `params.query` filters; Refresh re-scans.
 fn ui_spec(params: &Value) -> Value {
     let query = params
         .get("query")
@@ -146,7 +163,7 @@ fn ui_spec(params: &Value) -> Value {
                 .label("Search")
                 .placeholder("category, type, id, vendor, product, serial…")
                 .default(query.clone()),
-            button("Refresh", "devices.local", "ui").primary(),
+            button("Refresh", "devices.local", "scan").primary(),
             separator(),
             label(format!("Connected ({})", connected.len())).strong(),
             table(cols.clone(), connected),
