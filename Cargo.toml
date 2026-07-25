@@ -3,7 +3,7 @@
 
 [package]
 name = "devices"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 license = "GPL-3.0-or-later"
 description = "Lists devices on THIS machine: USB, PCI, monitors, disks, network, Bluetooth."

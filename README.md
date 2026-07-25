@@ -46,7 +46,7 @@ subprocess = true    # Linux: spawns `journalctl` to read device history
 ## Install
 
 ```bash
-limen-cli add CRC-BARRACUDA/limen-devices@0.2.0
+limen-cli add CRC-BARRACUDA/limen-devices@0.3.0
 ```
 
 Limen clones the source, reads `limen.toml`, sees `language = "native"`, and
@@ -80,9 +80,9 @@ cargo build --release
 cp target/release/libdevices.so devices-linux-x86_64.so
 strip devices-linux-x86_64.so
 
-gh release create 0.2.0 \
+gh release create 0.3.0 \
   --repo CRC-BARRACUDA/limen-devices \
-  --title "devices 0.2.0" \
+  --title "devices 0.3.0" \
   devices-linux-x86_64.so
 ```
 
