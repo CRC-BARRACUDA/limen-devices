@@ -11,6 +11,10 @@ repo = "CRC-BARRACUDA/limen-devices"
 [provides]
 capabilities = ["devices.local"]
 
+# Optional: if a report provider is installed, a "Make Report" action appears.
+[optional.capabilities]
+"report.build" = ">=0.1"
+
 # Reads the kernel journal (spawns `journalctl`) for device history on Linux.
 [permissions]
 subprocess = true

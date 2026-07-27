@@ -40,6 +40,10 @@ pub fn list_devices() -> Value {
                 let mfg = inst_key
                     .as_ref()
                     .and_then(|k| k.get_value::<String, _>("Mfg").ok());
+                // The device's registry key — what the "Registry" row action
+                // navigates regedit to.
+                let reg_key =
+                    format!(r"Computer\HKEY_LOCAL_MACHINE\{path}\{group}\{instance}");
                 devices.push(device(
                     category,
                     dtype,
@@ -48,6 +52,7 @@ pub fn list_devices() -> Value {
                     friendly,
                     Some(instance.clone()),
                     false, // registry = history; live presence not resolved here
+                    Some(reg_key),
                 ));
             }
         }

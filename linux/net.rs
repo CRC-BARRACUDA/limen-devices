@@ -26,6 +26,7 @@ pub(super) fn collect(out: &mut Vec<Value>) {
         } else {
             "ethernet"
         };
-        out.push(device("net", dtype, mac, None, Some(name), operstate, connected));
+        let path = Some(format!("/sys/class/net/{name}"));
+        out.push(device("net", dtype, mac, None, Some(name), operstate, connected, path));
     }
 }

@@ -17,6 +17,7 @@ struct UsbDev {
     serial: Option<String>,
     dtype: Option<String>,
     connected: bool,
+    syspath: Option<String>,
 }
 
 pub(super) fn collect(out: &mut Vec<Value>) {
@@ -45,6 +46,9 @@ pub(super) fn collect(out: &mut Vec<Value>) {
                 ..Default::default()
             });
             d.connected = true;
+            if d.syspath.is_none() {
+                d.syspath = Some(dir.to_string_lossy().into_owned());
+            }
             if d.product.is_none() {
                 d.product = product;
             }
@@ -66,6 +70,7 @@ pub(super) fn collect(out: &mut Vec<Value>) {
             d.product.clone(),
             d.serial.clone(),
             d.connected,
+            d.syspath.clone(),
         ));
     }
 }
