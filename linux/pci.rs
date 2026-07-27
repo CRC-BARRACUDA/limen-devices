@@ -32,6 +32,7 @@ pub(super) fn collect(out: &mut Vec<Value>) {
         let driver = std::fs::read_link(dir.join("driver"))
             .ok()
             .and_then(|p| p.file_name().map(|n| n.to_string_lossy().to_string()));
+        let path = Some(dir.to_string_lossy().into_owned());
         out.push(device(
             "pci",
             dtype,
@@ -40,6 +41,7 @@ pub(super) fn collect(out: &mut Vec<Value>) {
             driver.map(|d| format!("driver: {d}")).or(Some(slot)),
             None,
             true,
+            path,
         ));
     }
 }

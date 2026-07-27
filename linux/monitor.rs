@@ -21,7 +21,8 @@ pub(super) fn collect(out: &mut Vec<Value>) {
         }
         let (vendor, product, serial) = parse_edid(&edid);
         let connector = entry.file_name().to_string_lossy().to_string();
-        out.push(device("monitor", "display", connector, vendor, product, serial, connected));
+        let path = Some(dir.to_string_lossy().into_owned());
+        out.push(device("monitor", "display", connector, vendor, product, serial, connected, path));
     }
 }
 

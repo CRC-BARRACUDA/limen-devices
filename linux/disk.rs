@@ -29,6 +29,7 @@ pub(super) fn collect(out: &mut Vec<Value>) {
         let vendor = read_trim(&dev.join("vendor"));
         let serial = read_trim(&dev.join("serial")).or_else(|| read_trim(&dev.join("wwid")));
         let dtype = if name.starts_with("nvme") { "nvme" } else { "disk" };
-        out.push(device("disk", dtype, name, vendor, model, serial, true));
+        let path = Some(entry.path().to_string_lossy().into_owned());
+        out.push(device("disk", dtype, name, vendor, model, serial, true, path));
     }
 }

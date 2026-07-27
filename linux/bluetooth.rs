@@ -12,6 +12,6 @@ pub(super) fn collect(out: &mut Vec<Value>) {
     for entry in entries.flatten() {
         let name = entry.file_name().to_string_lossy().to_string();
         let addr = read_trim(&entry.path().join("address")).unwrap_or_default();
-        out.push(device("bluetooth", "adapter", addr, None, Some(name), None, true));
+        out.push(device("bluetooth", "adapter", addr, None, Some(name), None, true, None));
     }
 }
