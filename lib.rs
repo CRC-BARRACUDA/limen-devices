@@ -148,17 +148,16 @@ fn row_cells(d: &Value) -> Vec<String> {
 }
 
 /// The right-click menu shared by every device row. The activated row's id is
-/// added by the host, so each entry only needs its `target`. Windows offers a
-/// submenu (File Explorer / Registry / Device Manager); Linux a single entry.
+/// added by the host, so each entry only needs its `target`. On Windows a device
+/// lives in the Registry or Device Manager — never on the filesystem — so those
+/// are the only two destinations; Linux has a single path entry.
 fn row_menu() -> Vec<MenuItem> {
     let mut items = vec![menu_item("About device", "devices.local", "about").open_in_tab()];
     #[cfg(target_os = "windows")]
     {
         items.push(limen_sdk_rust::ui::submenu(
-            "Open path",
+            "Open in",
             vec![
-                menu_item("File Explorer", "devices.local", "open_path")
-                    .args(json!({ "target": "path" })),
                 menu_item("Registry", "devices.local", "open_path")
                     .args(json!({ "target": "registry" })),
                 menu_item("Device Manager", "devices.local", "open_path")
@@ -420,15 +419,11 @@ impl Devices {
         #[cfg(target_os = "windows")]
         {
             widgets.push(
-                button("Open in File Explorer", "devices.local", "open_path")
-                    .args(json!({ "id": id, "target": "path" })),
-            );
-            widgets.push(
                 button("Open in Registry", "devices.local", "open_path")
                     .args(json!({ "id": id, "target": "registry" })),
             );
             widgets.push(
-                button("Open Device Manager", "devices.local", "open_path")
+                button("Open in Device Manager", "devices.local", "open_path")
                     .args(json!({ "id": id, "target": "device_manager" })),
             );
         }
@@ -446,15 +441,23 @@ impl Devices {
         window(title, widgets)
     }
 
-    /// Open a device's OS location: file manager (Linux), or Explorer / Registry
-    /// / Device Manager (Windows). `params`: `{ id, target }`.
+    /// Open a device's OS location: file manager (Linux), or Registry / Device
+    /// Manager (Windows). `params`: `{ id, target }`.
     fn open_path(&self, params: &Value, host: &Host) -> Value {
         let id = params.get("id").and_then(Value::as_str).unwrap_or("");
         let target = params.get("target").and_then(Value::as_str).unwrap_or("path");
+        // Each destination needs a different value: regedit navigates to the
+        // device's registry key, Device Manager wants its instance id. Sending
+        // `path` to both — as this did — meant Device Manager got a registry
+        // key it could not resolve.
+        let field = match target {
+            "device_manager" => "instance_id",
+            _ => "path",
+        };
         let value = self
             .last
             .get(id)
-            .map(|d| cell(d, "path"))
+            .map(|d| cell(d, field))
             .unwrap_or_default();
         host.open(target, &value);
         // Fire-and-forget: no Result pane for this action.
