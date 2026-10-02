@@ -1,0 +1,65 @@
+# Every word this module puts on screen. The module card's own title and
+# description are not here — the host reads those from limen.toml for English.
+
+[ui]
+title = "Local Devices"
+idle_hint = "Scan this machine for connected and previously-seen devices."
+scan = "Scan"
+refresh = "Refresh"
+search = "Search"
+search_ph = "category, type, id, vendor, product, serial…"
+rows_hint = "Right-click a row for actions; double-click to open its details."
+report = "Make Report"
+connected = "Connected ({n})"
+disconnected = "Disconnected — previously connected ({n})"
+
+[col]
+category = "Category"
+type = "Type"
+id = "ID"
+vendor = "Vendor"
+product = "Product"
+serial = "Serial"
+
+[val]
+yes = "yes"
+no = "no"
+
+[menu]
+about = "About device"
+open_in = "Open in"
+registry = "Registry"
+device_manager = "Device Manager"
+open_path = "Open path"
+
+[detail]
+title = "Device"
+missing = "This device isn't in the latest scan — re-scan and try again."
+connected = "Connected"
+location = "Location"
+open_registry = "Open in Registry"
+open_device_manager = "Open in Device Manager"
+open_path = "Open path"
+
+[report]
+config_title = "Make Report"
+options = "Report options"
+include = "Include"
+devices = "Devices"
+generate = "Generate"
+content_both = "Tables and charts"
+content_tables = "Tables only"
+content_charts = "Charts only"
+scope_all = "All devices"
+scope_connected = "Connected only"
+scope_disconnected = "Disconnected only"
+title = "Device Report"
+subtitle = "{total} devices · {connected} connected"
+chart = "Devices by category"
+section_connected = "Connected"
+section_disconnected = "Disconnected — previously connected"
+total = "Total devices: {n}"
+connected_now = "Connected now: {n}"
+exported = "Report exported"
+exported_body = "The document was generated and opened in your default app."
+failed = "Couldn't build the report"
