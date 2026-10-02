@@ -2,6 +2,32 @@
 
 use crate::*;
 
+/// This machine's name, for the report's subtitle and its filename.
+///
+/// Read from the kernel on Linux and from the environment on Windows — no new
+/// permission, and no process spawned for a string the system already has.
+/// Empty rather than a guess if neither answers: a report labelled "unknown" is
+/// one somebody has to open to identify.
+fn hostname() -> String {
+    #[cfg(target_os = "linux")]
+    {
+        if let Ok(name) = std::fs::read_to_string("/proc/sys/kernel/hostname") {
+            let name = name.trim();
+            if !name.is_empty() {
+                return name.to_string();
+            }
+        }
+    }
+    for var in ["COMPUTERNAME", "HOSTNAME"] {
+        if let Ok(name) = std::env::var(var) {
+            if !name.trim().is_empty() {
+                return name.trim().to_string();
+            }
+        }
+    }
+    String::new()
+}
+
 /// The "Make Report" configuration view (opened in a tab): choose the output,
 /// what to include, and which devices, then Generate.
 pub(crate) fn report_config(lang: &str) -> Value {
@@ -41,10 +67,10 @@ impl Devices {
     /// `params` come from the config view's selects (`format`/`content`/`scope`).
     pub(crate) fn make_report(&self, params: &Value, host: &Host, lang: &str) -> Value {
         let t = |k: &str| catalog().tr(lang, k);
-        // Always the preview: which file it becomes — PDF, Word, a page, a
-        // table — is chosen there, beside the thing being saved, rather than in
-        // a dropdown here that has to be kept in step with what the report
-        // module can actually produce.
+        // Always the preview. What the document is, and the ground it is
+        // printed on, are decided there — beside the thing being saved, by the
+        // module that owns the question — rather than in a dropdown here that
+        // has to be kept in step with what a provider can actually produce.
         let fmt = "view";
         let content = params.get("content").and_then(Value::as_str).unwrap_or("");
         let scope = params.get("scope").and_then(Value::as_str).unwrap_or("");
@@ -52,7 +78,9 @@ impl Devices {
         match host.call("report.build", "build", spec) {
             // The report provider returned a view — show it in this tab.
             Ok(v) if v.get("widgets").is_some() => v,
-            // An export (file written + opened) acknowledges with null.
+            // A provider that writes a file and acknowledges with nothing. The
+            // one shipped with Limen always answers with a screen; this is for
+            // any other.
             Ok(_) => window(
                 t("report.config_title"),
                 vec![
@@ -124,11 +152,29 @@ impl Devices {
             }
         }
 
+        // The machine this is about, in the line under the title and in the
+        // name the file is offered under. The report module adds the date; a
+        // folder of files all called "devices" is one nobody can find anything
+        // in.
+        let host = hostname();
+        let subtitle = t(if host.is_empty() {
+            "report.subtitle"
+        } else {
+            "report.subtitle_host"
+        })
+        .replace("{host}", &host)
+        .replace("{total}", &total.to_string())
+        .replace("{connected}", &connected.to_string());
+        let file_name = if host.is_empty() {
+            "devices".to_string()
+        } else {
+            format!("{host}_devices")
+        };
+
         json!({
             "title": t("report.title"),
-            "subtitle": t("report.subtitle")
-                .replace("{total}", &total.to_string())
-                .replace("{connected}", &connected.to_string()),
+            "subtitle": subtitle,
+            "file_name": file_name,
             "format": fmt,
             "summary": [
                 t("report.total").replace("{n}", &total.to_string()),

@@ -1,19 +1,7 @@
 //! The catalogue, and that both languages actually say everything.
 
+use crate::tests::{scanned, seen};
 use crate::*;
-
-/// One device, as a scan would record it.
-fn seen(id: &str, connected: bool) -> Value {
-    json!({
-        "category": "usb", "type": "storage", "id": id,
-        "vendor": "Acme", "product": "Stick", "serial": "SN1",
-        "connected": connected, "path": "",
-    })
-}
-
-fn scanned(devices: Vec<Value>) -> Devices {
-    Devices { last_devices: devices, scanned: true, ..Default::default() }
-}
 
 /// Every `a.b` key a locale file defines, read from the file rather than
 /// through the catalogue: `tr` falls back to English for a key Ukrainian is
