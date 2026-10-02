@@ -1,6 +1,7 @@
 [module]
 name = "devices"
-version = "0.4.0"
+display_name = "Local devices"
+version = "0.5.0"
 language = "native"
 entry = "devices"
 abi = "native"
